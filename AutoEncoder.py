@@ -144,35 +144,19 @@ class DenoisingAutoEncoder:
                 batch_x = x[j * batch_size : (j + 1) * batch_size]   # get minibatch of original data
                 corrupt_batch_x = corrupt_x[j * batch_size : (j + 1) * batch_size]  # get minibatch of corrupted data
 
-                #hidden_in = corrupt_batch_x.dot(self.W1) + self.b1   # hidden unit caculation
                 hidden_in,cache1 = affine_forward(corrupt_batch_x,self.W1,self.b1)
                 hidden_out,cache2 = sigmoid_forward(hidden_in)
-
-                #reconstruct_in = hidden_out.dot(self.W2) + self.b2   # reconstruct data
                 reconstruct_in,cache3 = affine_forward(hidden_out,self.W2,self.b2)
-                #reconstruct_x,cache4 = sigmoid_forward(reconstruct_in)
 
-                #loss = -1.0 * np.sum((batch_x * np.log(reconstruct_x) + (1 - batch_x) * np.log(1 - reconstruct_x))) / batch_size
-                #Loss.append(loss)
                 batch_loss,dscore = cross_entropy_loss(reconstruct_in,batch_x)
                 Loss.append(batch_loss)
 
-                '''back-propagation'''
-                #grad_reconstruct_in = (reconstruct_x - batch_x) / batch_size
-                #grad_W2 = (hidden_out.T).dot(grad_reconstruct_in)
-                #grad_b2 = np.sum(grad_reconstruct_in, axis = 0)
-                #grad_hidden_out = (grad_reconstruct_in).dot(self.W2.T)
-
+                """forward"""
                 grad_W2,grad_b2,grad_hidden_out = affine_backward(dscore,cache3)
                 grad_hidden_in = sigmoid_backward(grad_hidden_out,cache2)
                 grad_W1,grad_b1,_ = affine_backward(grad_hidden_in,cache1)
 
-                #grad_hidden_in = grad_hidden_out * (hidden_out * (1 - hidden_out))
-
-                #grad_W1 = (corrupt_batch_x.T).dot(grad_hidden_in)
-                #grad_b1 = np.sum(grad_hidden_in, axis = 0)
-
-                '''update parameters'''
+                """back_propagation"""
                 self.W1 -= lr * (grad_W1 + grad_W2.T + regularization * self.W1)
                 self.b1 -= lr * (grad_b1)
                 self.b2 -= lr * (grad_b2)
