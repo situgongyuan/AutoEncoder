@@ -1,7 +1,7 @@
 import numpy as np
 import multiprocessing as mtp
 import time
-
+from utils import *
 """
     this script implements some layers usually used in neural network.
 """
@@ -74,7 +74,7 @@ def affine_backward(dout, cache):
   dw = np.dot(x_flat.T,dout)
   db = np.sum(dout, axis = 0)
 
-  return dx, dw, db
+  return dw, db, dx
 
 
 def relu_forward(x):
@@ -110,8 +110,9 @@ def relu_backward(dout, cache):
   return dx
 
 def sigmoid_forward(x):
-    cache = x
-    return 1 / (1 + np.exp(-x)),cache
+    out = 1 / (1 + np.exp(-x))
+    cache = out
+    return out, cache
 
 def sigmoid_backward(dout,cache):
     x = cache
@@ -310,6 +311,14 @@ def max_pool_backward_naive(dout, cache):
     np.add.at(dx,(slice(None),slice(None),row_index,col_index),dx_col)
 
   return dx
+
+
+def cross_entropy_loss(x,y):
+    n = x.shape[0]
+    x_prime = sigmoid(x)
+    loss = -1.0 * np.sum((y * np.log(x_prime) + (1 - y) * np.log(1 - x_prime))) / n
+    dscore = (x_prime - y) / n
+    return loss,dscore
 
 
 def svm_loss(x, y):

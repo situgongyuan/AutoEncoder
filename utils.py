@@ -20,7 +20,7 @@ def softmax(X):
     return probability
 
 def corrupt(X,level):
-    mask = stats.bernoulli.rvs(level, size = X.shape)
+    mask = stats.bernoulli.rvs(1.0 - level, size = X.shape)
     return X * mask
 
 def loadData(dataset):
