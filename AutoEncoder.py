@@ -46,40 +46,34 @@ class SparseAutoEncoder:
             for j in xrange(n_batch):
                 batch_x = x[j * batch_size: (j + 1) * batch_size]
 
-                hidden_in = batch_x.dot(self.W1) + self.b1
-                hidden_out = sigmoid(hidden_in)
-
+                hidden_in,cache1 = affine_forward(batch_x,self.W1,self.b1)
+                hidden_out,cache2 = sigmoid_forward(hidden_in)
                 average_activation = np.sum(hidden_out, axis = 0) / batch_size
+                reconstruct_in,cache3 = affine_forward(hidden_out,self.W2,self.b2)
 
-                reconstruct_in = hidden_out.dot(self.W2) + self.b2
-                reconstruct_out = sigmoid(reconstruct_in)
-
-                square_loss = 0.5 * np.sum((reconstruct_out - batch_x) ** 2) / batch_size
-                reg_loss = 0.5 * regularization * (np.sum(self.W1 ** 2) + np.sum(self.W2 ** 2))
-                KL_loss = beta * np.sum((activation_level * np.log(activation_level / average_activation) +
+                batch_loss,dscore = square_loss(reconstruct_in,batch_x)
+                reg_loss = regularization * 0.5 * (np.sum(self.W1 * self.W1) + np.sum(self.W2 * self.W2))
+                kl_divergence_activation = beta * np.sum((activation_level * np.log(activation_level / average_activation) +
                                          (1 - activation_level) * np.log((1 - activation_level) / (1 - average_activation))))
-                total_loss = square_loss + reg_loss + KL_loss
-                Loss.append(total_loss)
+                loss = batch_loss + reg_loss + kl_divergence_activation
+                Loss.append(loss)
 
-                grad_reconstruct_out = (reconstruct_out - batch_x) / batch_size
-                grad_reconstruct_in = grad_reconstruct_out * reconstruct_out * (1 - reconstruct_out)
-                grad_W2 = (hidden_out.T).dot(grad_reconstruct_in)
-                grad_b2 = np.sum(grad_reconstruct_in, axis = 0)
-
-                grad_hidden_out = grad_reconstruct_in.dot(self.W2.T) + beta * (
+                """back propagation"""
+                grad_W2,grad_b2,grad_hidden_out = affine_backward(dscore,cache3)
+                grad_hidden_out += beta * (
                     (1 - activation_level) / (1 - average_activation) - activation_level / average_activation) / batch_size
-                grad_hidden_in = grad_hidden_out * (hidden_out) * (1 - hidden_out)
+                grad_hidden_in = sigmoid_backward(grad_hidden_out,cache2)
+                grad_W1,grad_b1,_ = affine_backward(grad_hidden_in,cache1)
 
-                grad_W1 = (batch_x.T).dot(grad_hidden_in)
-                grad_b1 = np.sum(grad_hidden_in, axis=0)
-
+                """update parameters"""
                 self.W2 -= lr * (grad_W2 + regularization * self.W2)
                 self.W1 -= lr * (grad_W1 + regularization * self.W1)
                 self.b1 -= lr * (grad_b1)
                 self.b2 -= lr * (grad_b2)
+
             mean_loss = np.mean(Loss)
             learning_curve_list.append(mean_loss)
-            print "average loss is: %f" % mean_loss
+            print "average loss is: %f, at epoch %d" % (mean_loss,i)
             if i % 10 == 0:
                 cmap = mpl.cm.gray_r
                 norm = mpl.colors.Normalize(vmin=0)
@@ -127,7 +121,6 @@ class DenoisingAutoEncoder:
 
         self.W2 = self.W1.T # tie weight
 
-
     def get_hidden_output(self,x):
         return sigmoid(x.dot(self.W1) + self.b1)
 
@@ -149,21 +142,23 @@ class DenoisingAutoEncoder:
                 reconstruct_in,cache3 = affine_forward(hidden_out,self.W2,self.b2)
 
                 batch_loss,dscore = cross_entropy_loss(reconstruct_in,batch_x)
-                Loss.append(batch_loss)
+                reg_loss = regularization * 0.5 * self.W1 * self.W1
+                loss = batch_loss + reg_loss
+                Loss.append(loss)
 
-                """forward"""
+                """back propagation"""
                 grad_W2,grad_b2,grad_hidden_out = affine_backward(dscore,cache3)
                 grad_hidden_in = sigmoid_backward(grad_hidden_out,cache2)
                 grad_W1,grad_b1,_ = affine_backward(grad_hidden_in,cache1)
 
-                """back_propagation"""
+                """update parameters"""
                 self.W1 -= lr * (grad_W1 + grad_W2.T + regularization * self.W1)
                 self.b1 -= lr * (grad_b1)
                 self.b2 -= lr * (grad_b2)
 
             mean_loss = np.mean(Loss)
             learning_curve_list.append(mean_loss)
-            print "average loss is: %f" % mean_loss
+            print "average loss is: %f, at epoch: %d" % (mean_loss,i)
 
             '''visualize weight'''
             if i % 10 == 0:
@@ -206,7 +201,7 @@ if __name__ == "__main__":
     n_hidden = 500
     epochs = 100
 
-    lr = 0.1
+    '''lr = 0.1
     batch_size = 20
     corruption_level = 0.3
     regularization = 0
@@ -214,10 +209,10 @@ if __name__ == "__main__":
     dA = DenoisingAutoEncoder(feature_size,n_hidden)
     print "start training......"
     dA.train(train_x,epochs,lr,batch_size,corruption_level,regularization)
-    print "finish training!"
+    print "finish training!"'''
 
-    '''lr = 0.1
-    batch_size = 100
+    lr = 0.1
+    batch_size = 20
     regularization = 1e-4
     activation_level = 0.01
     beta = 3
@@ -225,4 +220,4 @@ if __name__ == "__main__":
     dA = SparseAutoEncoder(feature_size,n_hidden)
     print "start training......"
     dA.train(train_x,epochs,lr,batch_size,regularization,beta,activation_level)
-    print "finish training!"'''
+    print "finish training!"

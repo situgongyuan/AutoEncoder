@@ -320,6 +320,12 @@ def cross_entropy_loss(x,y):
     dscore = (x_prime - y) / n
     return loss,dscore
 
+def square_loss(x,y):
+    n = x.shape[0]
+    x_prime = sigmoid(x)
+    loss = 0.5 * np.sum((x_prime - y)*(x_prime - y)) / n
+    dscore = (x_prime - y) * x_prime * (1.0 - x_prime) / n
+    return loss,dscore
 
 def svm_loss(x, y):
   """
