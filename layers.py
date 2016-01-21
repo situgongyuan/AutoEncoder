@@ -265,14 +265,7 @@ def max_pool_backward_reshape(dout, cache):
   and is unlikely to matter in practice so we don't do it.
   """
   x, x_reshaped, out = cache
-  '''dx_reshaped = np.zeros_like(x_reshaped)
-  out_newaxis = out[:, :, :, np.newaxis, :, np.newaxis]
-  mask = (x_reshaped == out_newaxis)
-  dout_newaxis = dout[:, :, :, np.newaxis, :, np.newaxis]
-  dout_broadcast, _ = np.broadcast_arrays(dout_newaxis, dx_reshaped)
-  dx_reshaped[mask] = dout_broadcast[mask]
-  dx_reshaped /= np.sum(mask, axis=(3, 5), keepdims=True)
-  dx = dx_reshaped.reshape(x.shape)'''
+
   x_reshaped = x_reshaped.transpose(0,1,2,4,3,5) #(100,3,16,16,2,2)
   out_newaxis = out[:, :, :, :, np.newaxis, np.newaxis]  #(100,3,16,16,1,1)
   mask = (x_reshaped == out_newaxis) #(100,3,16,16,2,2)
